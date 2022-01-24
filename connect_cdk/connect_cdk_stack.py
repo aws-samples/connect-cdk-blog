@@ -65,6 +65,10 @@ class BaseResources(core.NestedStack):
         **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        # Full Connect Instance ARN
+        connect_instance_arn =  "arn:aws:connect:" + self.region +":" + self.account + ":instance/" + connect_instance_id.value_as_string
+        logging.debug(f'Connect Instance ARN {connect_instance_arn}')
+        
         connect_iam_role = _iam.Role(self, "connectIamRole",
                                 assumed_by = _iam.AccountPrincipal(core.Aws.ACCOUNT_ID),
                                 description="IAM role for records to access AWS services.",
@@ -74,9 +78,13 @@ class BaseResources(core.NestedStack):
         # Adding connect access to IAM role.
         connect_iam_role.add_to_policy(
             _iam.PolicyStatement(
-                resources=['*'],
+                resources=[connect_instance_arn],
                 actions=[
-                    "connect:*"
+                    "connect:UpdateInstanceStorageConfig",
+                    "connect:DescribeInstanceStorageConfig",
+                    "connect:ListInstanceStorageConfigs",
+                    "connect:AssociateInstanceStorageConfig",
+                    "connect:DisassociateInstanceStorageConfig"
                 ]
             )
         )
@@ -142,10 +150,6 @@ class BaseResources(core.NestedStack):
         # outputs
         core.CfnOutput(self, "Agent StreamARN", value= kinesis_input_stream_agnt.stream_arn)
         core.CfnOutput(self, "CTR Stream Type Parm (from cdk.json)", value= streamType)
-        
-        # Full Connect Instance ARN
-        connect_instance_arn =  "arn:aws:connect:" + self.region +":" + self.account + ":instance/" + connect_instance_id.value_as_string
-        logging.debug(f'Connect Instance ARN {connect_instance_arn}')
         
         core.CfnOutput(self, "ConnectInstanceARN", value= connect_instance_arn)
         core.CfnOutput(self, "StorageType", value=storageType)
